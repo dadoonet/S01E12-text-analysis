@@ -1,0 +1,296 @@
+# No analyzer
+## Index phase
+POST _analyze
+{
+  "analyzer": "keyword",
+  "text":     "The quick brown FOX."
+}
+## Search phase ("fox" won't match but only "The quick brown FOX.")
+POST _analyze
+{
+  "analyzer": "keyword",
+  "text":     ["fox", "The quick brown FOX." ]
+}
+
+# Whitespace analyzer
+## Index phase
+POST _analyze
+{
+  "analyzer": "whitespace",
+  "text":     "The quick brown FOX."
+}
+## Search phase (only "brown" and "FOX." will match)
+POST _analyze
+{
+  "analyzer": "whitespace",
+  "text":     [ "brown fox", "FOX." ]
+}
+
+# Standard analyzer
+## Index phase
+POST _analyze
+{
+  "analyzer": "standard",
+  "text":     "The quick brown FOX."
+}
+## Search phase
+POST _analyze
+{
+  "analyzer": "standard",
+  "text":     [ "brown fox", "FOX." ]
+}
+
+# Dealing with languages
+## Index phase
+POST _analyze
+{
+  "analyzer": "standard",
+  "text":     "Here is an éléphant in french"
+}
+## Search phase
+POST _analyze
+{
+  "analyzer": "standard",
+  "text":     [ "elephant", "éléphant" ]
+}
+## Index phase
+POST _analyze
+{
+  "analyzer": "french",
+  "text":     "Here is an éléphant in french"
+}
+## Search phase
+POST _analyze
+{
+  "analyzer": "french",
+  "text":     [ "elephant", "éléphant" ]
+}
+
+# What is an analyzer?
+## Made of character filters, tokenizer and token filters
+POST _analyze
+{
+  "char_filter": [], 
+  "tokenizer":   "standard",
+  "filter":      [], 
+  "text": [ 
+    "I like when the <strong>quick</strong> foxes jumps over lazy DOGS!",
+    "👍 🐶 and <strong>fast</strong> 🦊!."
+  ]
+}
+
+# Building our analyzer
+## Let's remove the html code.
+POST _analyze
+{
+  "char_filter": ["html_strip"], 
+  "tokenizer":   "standard",
+  "filter":      [
+  ], 
+  "text":
+  [ 
+    "I like when the <strong>quick</strong> foxes jumps over lazy DOGS!",
+    "👍 🐶 and <strong>fast</strong> 🦊!."
+  ]
+}
+
+## Some words don't bring us any value. Let's skip them.
+POST _analyze
+{
+  "char_filter": ["html_strip"], 
+  "tokenizer":   "standard",
+  "filter":      [
+    {
+      "type":       "stop",
+      "stopwords":  [ "_english_"]
+    }
+  ], 
+  "text":
+  [ 
+    "I like when the <strong>quick</strong> foxes jumps over lazy DOGS!",
+    "👍 🐶 and <strong>fast</strong> 🦊!."
+  ]
+}
+## We can also remove "I", "when" and "over"
+POST _analyze
+{
+  "char_filter": ["html_strip"], 
+  "tokenizer":   "standard",
+  "filter":      [
+    {
+      "type":       "stop",
+      "ignore_case":true, 
+      "stopwords":  [ "_english_", "I", "when", "over"]
+    }
+  ], 
+  "text":
+  [ 
+    "I like when the <strong>quick</strong> foxes jumps over lazy DOGS!",
+    "👍 🐶 and <strong>fast</strong> 🦊!."
+  ]
+}
+
+## DOGS and dogs should match
+POST _analyze
+{
+  "char_filter": ["html_strip"], 
+  "tokenizer":   "standard",
+  "filter":      [
+    {
+      "type":       "stop",
+      "ignore_case":true, 
+      "stopwords":  [ "_english_", "I", "when", "over"]
+    },
+    "lowercase"
+  ], 
+  "text":
+  [ 
+    "I like when the <strong>quick</strong> foxes jumps over lazy DOGS!",
+    "👍 🐶 and <strong>fast</strong> 🦊!."
+  ]
+}
+
+
+## dog, dogs and fox, foxes and jump, jumps, jumping, jumped
+POST _analyze
+{
+  "char_filter": ["html_strip"], 
+  "tokenizer":   "standard",
+  "filter":      [
+    {
+      "type":       "stop",
+      "ignore_case":true, 
+      "stopwords":  [ "_english_", "I", "when", "over"]
+    },
+    "lowercase",
+    {
+      "type":       "stemmer",
+      "language":   "english" 
+    }
+  ], 
+  "text":
+  [ 
+    "jumping jumps jump jumped",
+    "I like when the <strong>quick</strong> foxes jumps over lazy DOGS!",
+    "👍 🐶 and <strong>fast</strong> 🦊!."
+  ]
+}
+
+## Playing with emojis
+POST _analyze
+{
+  "char_filter": ["html_strip"], 
+  "tokenizer":   "standard",
+  "filter":      [
+    {
+      "type":       "stop",
+      "ignore_case":true, 
+      "stopwords":  [ "_english_", "I", "when", "over"]
+    },
+    "lowercase",
+    {
+      "type":       "stemmer",
+      "language":   "english" 
+    },
+    {
+      "type": "synonym",
+      "lenient": true,
+      "synonyms": [
+        "fast => quick",
+        "🐶 => dog",
+        "👍 => like",
+        "🦊 => fox"
+      ]
+    }
+  ], 
+  "text":
+  [ 
+    "I like when the <strong>quick</strong> foxes jumps over lazy DOGS!",
+    "👍 🐶 and <strong>fast</strong> 🦊!."
+  ]
+}
+## Damien Alexandre provided a curated list of synonyms at https://github.com/jolicode/emoji-search
+
+# ngrams and edge ngrams
+POST _analyze
+{
+  "tokenizer":   "standard",
+  "filter":      [
+    { 
+      "type": "edge_ngram",
+      "min_gram": 2,
+      "max_gram": 5
+    }
+  ], 
+  "text": [ 
+    "community",
+    "convention"
+  ]
+}
+POST _analyze
+{
+  "tokenizer":   "standard",
+  "filter":      [
+    { 
+      "type": "edge_ngram",
+      "min_gram": 2,
+      "max_gram": 5
+    }
+  ], 
+  "text": [ 
+    "con"
+  ]
+}
+POST _analyze
+{
+  "tokenizer":   "simple", 
+  "text": [ 
+    "con"
+  ]
+}
+
+# shingles
+# Pomme de terre = Apple from earth but actually potatoe
+# Pomme = apple
+POST _analyze
+{
+  "tokenizer":   "standard",
+  "filter": [ 
+  ], 
+  "text": [
+    "pomme de terre",
+    "pomme grany"
+  ]
+}
+POST _analyze
+{
+  "tokenizer":   "standard",
+  "filter": [ 
+    { 
+      "type": "shingle",
+      "max_shingle_size": 3
+    }
+  ], 
+  "text": [
+    "pomme de terre",
+    "pomme grany"
+  ]
+}
+
+
+# Fun stuff
+## Where order matters
+GET _analyze
+{
+  "explain": true, 
+  "tokenizer": "whitespace", 
+  "filter":  [ "lowercase", "stop" ],
+  "text": "To Be Or Not To Be"
+}
+GET _analyze
+{
+  "explain": true, 
+  "tokenizer": "whitespace", 
+  "filter":  [ "stop", "lowercase" ],
+  "text": "To Be Or Not To Be"
+}
