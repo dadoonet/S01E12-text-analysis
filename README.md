@@ -317,7 +317,7 @@ POST _analyze
 }
 ```
 
-@damienalexandre provided a [curated list of synonyms](https://github.com/jolicode/emoji-search/tree/master/synonyms) at https://github.com/jolicode/emoji-search. It's available for many languages.
+[Damien Alexandre](https://github.com/damienalexandre) provided a [curated list of synonyms](https://github.com/jolicode/emoji-search/tree/master/synonyms) at https://github.com/jolicode/emoji-search. It's available for many languages.
 
 ## ngrams and edge ngrams
 
